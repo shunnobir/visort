@@ -16,10 +16,10 @@ let numDivs: HTMLDivElement[] = [];
 let n: number = 0;
 let scale: number = 100;
 let stopSort: boolean = false;
-let speed: number = 100;
+let speed: number = 0;
 
 let label: HTMLSpanElement = document.createElement("span");
-label.innerHTML = `N: ${n}`;
+label.innerHTML = `Lines: ${n}`;
 
 function handleDivGeneration() {
     if (n > 0 && root) {
@@ -53,12 +53,13 @@ function handleDivGeneration() {
 function handleGenerate(event: MouseEvent) {
     event.stopPropagation();
     stopSort = true;
-    n = Math.ceil(Math.random() * scale + 1);
+    n = Math.ceil(Math.random() * scale);
 
-    label.innerHTML = `N: ${n}`;
+    label.innerHTML = `Lines: ${n}`;
     nums = [];
-    for (let i: number = 0; i < n; ++i) 
-    nums.push(Math.ceil(Math.random() * n));
+    for (let i: number = 0; i < n; ++i) {
+        nums.push(Math.ceil(Math.random() * n));
+    }
     handleDivGeneration();
 }
 
@@ -222,5 +223,52 @@ sortingAlgo.map((sort: { name: string, func: (e: MouseEvent) => void }) => {
     topDiv.append(sortButton);
 });
 
+function handleScaleSliderChange(event: Event) {
+    event.stopPropagation();
+    const target: HTMLInputElement = event.target as HTMLInputElement;
+    scale = Number(target.value);
+    scaleLabel.innerHTML = `max lines: ${scale}`;
+}
+
+function handleSpeedSliderChange(event: Event) {
+    event.stopPropagation();
+    const target: HTMLInputElement = event.target as HTMLInputElement;
+    speed = Number(target.value);
+    speedLabel.innerHTML = `speed: ${speed}`;
+}
+
+let scaleLabel: HTMLSpanElement = document.createElement("span");
+scaleLabel.innerHTML = `max lines: ${scale}`;
+
+let scaleSlider: HTMLInputElement = document.createElement("input");
+scaleSlider.type = "range";
+scaleSlider.max = "100";
+scaleSlider.min = "10";
+scaleSlider.value = `${scale}`;
+scaleSlider.oninput = handleScaleSliderChange;
+
+let speedLabel: HTMLSpanElement = document.createElement("span");
+speedLabel.innerHTML = `speed: ${speed}`;
+
+let speedSlider: HTMLInputElement = document.createElement("input");
+speedSlider.type = "range";
+speedSlider.max = "100";
+speedSlider.min = "10";
+speedSlider.value = `${speed}`;
+speedSlider.oninput = handleSpeedSliderChange;
+
+let midDiv: HTMLDivElement = document.createElement("div");
+midDiv.classList.add("midDiv");
+midDiv.style.display = "flex";
+midDiv.style.gap = "1rem";
+midDiv.style.alignItems = "center";
+
+midDiv.append(scaleLabel);
+midDiv.append(scaleSlider);
+midDiv.append(speedLabel);
+midDiv.append(speedSlider);
+root.append(midDiv);
+
 topDiv.append(stopButton);
 root.append(topDiv);
+
