@@ -2,7 +2,7 @@
 Visort is a sorting visualizer written using vanilla Typescript.
 
 # Example
-![example](resource/visort_example.mp4)
+![example](resource/visort_example.gif)
 
 # Implemented Sortings
 1. Bubble Sort
