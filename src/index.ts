@@ -3,20 +3,20 @@ import "./style.css";
 let root: HTMLElement | null = document.getElementById("app");
 
 if (!root) {
-    const body: HTMLElement | null = document.querySelector("body");
     root = document.createElement("div");
     root.classList.add("app");
-    body?.append(root);
+    document.body.append(root);
 }
 
-const maxWidth: number = 50;
-const maxHeight: number = 20;
+const maxWidth: number = 40;
+const maxHeight: number = 40;
 let nums: number[] = [];
 let numDivs: HTMLDivElement[] = [];
 let n: number = 0;
-let scale: number = 100;
+let scale: number = 200;
 let stopSort: boolean = false;
 let speed: number = 0;
+const speedScale: number = 300;
 
 let label: HTMLSpanElement = document.createElement("span");
 label.innerHTML = `Lines: ${n}`;
@@ -36,9 +36,9 @@ function handleDivGeneration() {
         numDivs = [];
         nums.map((num) => {
             let divElem: HTMLDivElement = document.createElement("div");
+            divElem.classList.add("num-divs");
             divElem.style.width = `${maxWidth / n}rem`;
             divElem.style.height = `${num * (maxHeight / n)}rem`;
-            divElem.style.backgroundColor = "lightblue";
             if (maxWidth / n >= Math.log10(n) + 1) divElem.innerText = `${num}`;
             divElem.style.display = "flex";
             divElem.style.alignItems = "end";
@@ -52,7 +52,7 @@ function handleDivGeneration() {
 
 function handleGenerate(event: MouseEvent) {
     event.stopPropagation();
-    stopSort = true;
+    endSorting();
     n = Math.ceil(Math.random() * scale);
 
     label.innerHTML = `Lines: ${n}`;
@@ -80,7 +80,6 @@ function updateNumDivs() {
         });
         root?.append(containerDiv);
     }
-
 }
 
 function removeActive() {
@@ -95,11 +94,21 @@ function sleep(ms: number) {
 
 function handleStop(event: MouseEvent) {
     event.stopPropagation();
-    stopSort = true;
+    endSorting();
+}
+
+function canStartSorting(elem: HTMLElement | null) {
+    if (!elem) return false;
+    const activeElem: HTMLElement | null = document.querySelector(".active");
+    if (activeElem && activeElem != elem) {
+        stopSort = true;
+        return false;
+    }
+    return true;
 }
 
 function startSorting(elem: HTMLElement | null) {
-    removeActive();
+    endSorting();
     elem?.classList.add("active");
     stopSort = false; 
 }
@@ -110,19 +119,23 @@ function endSorting() {
 }
 
 async function swap(i: number, j: number) {
-    numDivs[i].style.backgroundColor = "palevioletred";
-    numDivs[j].style.backgroundColor = "palevioletred";
+    numDivs[i].classList.add("compare-divs");
+    numDivs[j].classList.add("compare-divs");
     updateNumDivs();
     await sleep(speed);
+
+    numDivs[i].classList.remove("compare-divs");
+    numDivs[j].classList.remove("compare-divs");
+
     let t: number = nums[i];
     nums[i] = nums[j];
     nums[j] = t;    
 
-    let td: string = numDivs[i].style.height;
-    numDivs[i].style.height = numDivs[j].style.height;
-    numDivs[j].style.height = td;
-    numDivs[i].style.backgroundColor = "lightgreen";
-    numDivs[j].style.backgroundColor = "lightgreen";
+    let td: HTMLDivElement = numDivs[i];
+    numDivs[i] = numDivs[j];
+    numDivs[j] = td;
+    numDivs[i].classList.add("swapped-divs");
+    numDivs[j].classList.add("swapped-divs");
 
     if (maxWidth / n >= Math.log10(n) + 1) {
         numDivs[i].innerText = `${nums[i]}`;
@@ -132,14 +145,50 @@ async function swap(i: number, j: number) {
     updateNumDivs();
     await sleep(speed);
 
-    numDivs[i].style.backgroundColor = "lightblue";
-    numDivs[j].style.backgroundColor = "lightblue";
+    numDivs[i].classList.remove("swapped-divs");
+    numDivs[j].classList.remove("swapped-divs");
+
+    updateNumDivs();
+    await sleep(speed);
+}
+
+async function place(i: number, j: number, k: number, t: number) {
+    numDivs[j].classList.add("compare-divs");
+    numDivs[k].classList.add("compare-divs");
+    updateNumDivs();
+    await sleep(speed);
+
+    numDivs[j].classList.remove("compare-divs");
+    numDivs[k].classList.remove("compare-divs");
+
+    nums[i] = t;
+
+    for (let l: number = j; l > i; --l) {
+        let td: HTMLDivElement = numDivs[l-1];
+        numDivs[l-1] = numDivs[l];
+        numDivs[l] = td;
+    }
+
+    numDivs[j].classList.add("swapped-divs");
+    numDivs[k].classList.add("swapped-divs");
+
+    if (maxWidth / n >= Math.log10(n) + 1) {
+        numDivs[i].innerText = `${nums[i]}`;
+    }
+
+    updateNumDivs();
+    await sleep(speed);
+
+    numDivs[j].classList.remove("swapped-divs");
+    numDivs[k].classList.remove("swapped-divs");
+
     updateNumDivs();
     await sleep(speed);
 }
 
 async function handleBubbleSort(event: MouseEvent) {
     event.stopPropagation();
+    if (!canStartSorting(event.target as HTMLElement)) return;
     startSorting(event.target as HTMLElement);
 
     for (let i: number = 0; i < n && !stopSort; ++i) {
@@ -148,7 +197,10 @@ async function handleBubbleSort(event: MouseEvent) {
                 await swap(j, j-1);
             }
         }
-        numDivs[i].style.backgroundColor = "lightseagreen";
+    }
+
+    for (let i: number = 0; i < n && !stopSort; ++i) {
+        numDivs[i].classList.add("sorted-divs");
     }
 
     endSorting();
@@ -156,6 +208,7 @@ async function handleBubbleSort(event: MouseEvent) {
 
 async function handleInsertionSort(event: MouseEvent) {
     event.stopPropagation();
+    if (!canStartSorting(event.target as HTMLElement)) return;
     startSorting(event.target as HTMLElement);
     
     for (let i: number = 1; i < n && !stopSort; ++i) {
@@ -168,7 +221,7 @@ async function handleInsertionSort(event: MouseEvent) {
     }
 
     for (let i: number = 0; i < n && !stopSort; ++i) {
-        numDivs[i].style.backgroundColor = "lightseagreen"; 
+        numDivs[i].classList.add("sorted-divs");
     }
 
     endSorting();
@@ -176,25 +229,55 @@ async function handleInsertionSort(event: MouseEvent) {
 
 async function handleQuickSort(event: MouseEvent) {
     event.stopPropagation();
-    removeActive();
+    if (!canStartSorting(event.target as HTMLElement)) return;
+    startSorting(event.target as HTMLElement);
+    endSorting();
 }
 
 async function handleMergeSort(event: MouseEvent) {
     event.stopPropagation();
-    removeActive();
+    if (!canStartSorting(event.target as HTMLElement)) return;
+    startSorting(event.target as HTMLElement);
+
+    async function handleMerge(l: number, mid: number, r: number) {
+        let t1: number[] = nums.slice(l, mid+1);
+        let t2: number[] = nums.slice(mid+1, r+1);
+
+        t1.push(scale + 10);
+        t2.push(scale + 10);
+
+        let j = 0, k = 0;
+        for (let i: number = l; i <= r && !stopSort; ++i) {
+            if (t1[j] <= t2[k]) {
+                await place(i, j+l, k+mid+1-(k+mid+1 > r ? 1 : 0), t1[j]);
+                ++j;
+            } else {
+                await place(i, k+mid+1, j+l-(j+l > mid ? 1 : 0), t2[k]);
+                ++k;
+            }
+        }
+    }
+
+    async function handleMergeSortInternal(l: number, r: number) {
+        if (l < r && !stopSort) {
+            let mid = Math.floor((l + r) / 2);
+            console.log(l, r, mid);
+            await handleMergeSortInternal(l, mid);
+            await handleMergeSortInternal(mid+1, r);
+            await handleMerge(l, mid, r);
+        }
+    }
+
+    await handleMergeSortInternal(0, n-1);
+    for (let i: number = 0; i < n && !stopSort; ++i) {
+        numDivs[i].classList.add("sorted-divs");
+    }
+    endSorting();
 }
 
 let generateButton: HTMLButtonElement = document.createElement("button");
 generateButton.innerText = "Generate";
 generateButton.addEventListener("click", handleGenerate);
-
-let sortingAlgo: { name: string, func: (e: MouseEvent) => void }[] = [
-    { name: "Bubble Sort", func: handleBubbleSort },
-    { name: "Insertion Sort", func: handleInsertionSort },
-    { name: "Quick Sort", func: handleQuickSort },
-    { name: "Merge Sort", func: handleMergeSort },
-];
-
 
 let stopButton: HTMLButtonElement = document.createElement("button");
 stopButton.innerText = "Stop";
@@ -216,6 +299,13 @@ root.style.margin = "5rem";
 topDiv.append(label);
 topDiv.append(generateButton);
 
+let sortingAlgo: { name: string, func: (e: MouseEvent) => void }[] = [
+    { name: "Bubble Sort", func: handleBubbleSort },
+    { name: "Insertion Sort", func: handleInsertionSort },
+    { name: "Quick Sort", func: handleQuickSort },
+    { name: "Merge Sort", func: handleMergeSort },
+];
+
 sortingAlgo.map((sort: { name: string, func: (e: MouseEvent) => void }) => {
     let sortButton: HTMLButtonElement = document.createElement("button");
     sortButton.innerText = sort.name;
@@ -233,14 +323,15 @@ function handleScaleSliderChange(event: Event) {
 function handleSpeedSliderChange(event: Event) {
     event.stopPropagation();
     const target: HTMLInputElement = event.target as HTMLInputElement;
-    speed = Number(target.value);
-    speedLabel.innerHTML = `speed: ${speed}`;
+    speed = speedScale - Number(target.value);
+    speedLabel.innerHTML = `speed: ${speedScale - speed}`;
 }
 
 let scaleLabel: HTMLSpanElement = document.createElement("span");
 scaleLabel.innerHTML = `max lines: ${scale}`;
 
 let scaleSlider: HTMLInputElement = document.createElement("input");
+scaleSlider.classList.add("slider");
 scaleSlider.type = "range";
 scaleSlider.max = "100";
 scaleSlider.min = "10";
@@ -248,13 +339,14 @@ scaleSlider.value = `${scale}`;
 scaleSlider.oninput = handleScaleSliderChange;
 
 let speedLabel: HTMLSpanElement = document.createElement("span");
-speedLabel.innerHTML = `speed: ${speed}`;
+speedLabel.innerHTML = `speed: ${speedScale - speed}`;
 
 let speedSlider: HTMLInputElement = document.createElement("input");
+speedSlider.classList.add("slider");
 speedSlider.type = "range";
-speedSlider.max = "100";
-speedSlider.min = "10";
-speedSlider.value = `${speed}`;
+speedSlider.max = `${speedScale}`;
+speedSlider.min = "0";
+speedSlider.value = `${speedScale - speed}`;
 speedSlider.oninput = handleSpeedSliderChange;
 
 let midDiv: HTMLDivElement = document.createElement("div");
